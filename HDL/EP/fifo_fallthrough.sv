@@ -1,3 +1,6 @@
+// TODO:
+// - https://docs.amd.com/r/en-US/ug573-ultrascale-memory-resources/FWFT-Mode
+
 `timescale 1ns / 1ps
 
 module fifo_fallthrough #(
