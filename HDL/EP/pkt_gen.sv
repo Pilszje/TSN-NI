@@ -100,19 +100,12 @@ assign ipLen = 16'(r_length<<2) - ETH_LEN;
 assign udpLen = 16'(r_length<<2) - (ETH_LEN+IP_HDR_LEN);  
 
 logic r_enabled;
-initial r_enabled = DEF_EN;
 logic [INTERVAL_B-1:0]          r_interval;
-initial r_interval = DEF_INTER;
 logic [MAX_PKT_BITS-3:0]    r_length;
-initial r_length = DEF_LEN;
 logic [NQ_B-1:0]            r_queue;
-initial r_queue = DEF_Q;
 logic                       r_otherQueue;
-initial r_otherQueue = DEF_AQ;
 logic [BURST_B-1:0]           r_burstLen;
-initial r_burstLen = DEF_BLEN;
 logic r_loadParams;
-initial r_loadParams = 0;
 
 // loading new params
 always_ff @(posedge clk)
@@ -140,7 +133,6 @@ always_ff @(posedge clk)
 
 // count for interval
 logic [INTERVAL_B-1:0] interTimer;
-initial interTimer = 1;
 logic [INTERVAL_B-1:0] interTimerNext;
 assign interTimerNext = interTimer==0 ? r_interval : interTimer-1;
 always_ff @(posedge clk)
@@ -157,7 +149,6 @@ always_ff @(posedge clk)
 // normal and burst, so make a state machine for that
 typedef enum logic[1:0] { IDLE, TRANSMISSION, FULL, EOP} States_t;
 States_t state;
-initial state = IDLE;
 States_t stateNext;
 
 // assign pktHdr[14] = {curQueue,5'b0}; // for correctness
@@ -169,8 +160,6 @@ assign start = state==IDLE & stateNext != IDLE;
 
 logic [NQ_B-1:0] curQueue;
 logic flipQueue;
-initial flipQueue = 0;
-// initial curQueue = 0;
 always_ff @( posedge clk )
     if (~rstn) flipQueue <= 0;
     // else if (interTimer==1) curQueue <= r_otherQueue ? r_queue + 1 : r_queue; // set it one cycle early, so address can be retrieved correctly
@@ -185,11 +174,9 @@ logic [MAX_PKT_BITS-3:0] pktIdx;
 logic [MAX_PKT_BITS-3:0] pktIdxNext;
 
 logic [BURST_B-1:0] pktsLeft;
-initial pktsLeft = 0;
 logic [BURST_B-1:0] pktsLeftNext;
 
 logic [15:0] pktId;
-initial pktId = 0;
 always_ff @(posedge clk)
     if (~rstn) pktId <= 0;
     else if (state==TRANSMISSION & stateNext == EOP) pktId <= pktId + 1;

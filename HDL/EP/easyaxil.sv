@@ -124,7 +124,7 @@ module	easyaxil #(
 	localparam NQ_B = $clog2(NUM_QUEUES),
 	parameter Q_DB = 10,
 	localparam QUEUE_DEPTH = 1<<Q_DB,
-	parameter MAX_PKT_LEN = 1522,
+	localparam MAX_PKT_LEN = 1522,
 	localparam MAX_PKT_BITS = $clog2(MAX_PKT_LEN),
 	// TAS regs, time sync regs, queue mem rw regs, GCL
 	// Need to rethink this. input queues memory is directly accessible, which requires 13 bits width. output queues will also be available directly in the future. 14 bits needed for only those two, so use 15 bits.

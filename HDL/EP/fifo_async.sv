@@ -1,5 +1,4 @@
 `timescale 1ns / 1ps
-
 // with help from https://zipcpu.com/blog/2018/07/06/afifo.html
 module fifo_async #( 
     parameter WIDTH = 32,
@@ -24,38 +23,42 @@ module fifo_async #(
 reg [WIDTH-1:0] queue [0:DEPTH-1];
 
 logic w_fullNext, r_emptyNext;
-initial {w_full,r_empty} = 0;
+// initial {w_full,r_empty} = 0;
 
 // normal r/w pointers
 logic [AW:0] r_ridx, w_widx;
 logic [AW:0] r_ridxNext, w_widxNext;
-initial {r_ridx,w_widx} = 0;
+// initial {r_ridx,w_widx} = 0;
 
 // gray coded r/w pointers
 logic [AW:0] r_rgray, w_wgray;
-initial {r_rgray, w_wgray} = 0;
+// initial {r_rgray, w_wgray} = 0;
 logic [AW:0] r_rgrayNext, w_wgrayNext;
 
+// convert indices to gray code, so only one bit can change per increment
+// this helps with domain crossing, where having multiple bits change can lead to some bits not changing in the new domain
 // binary -> gray
 assign r_rgrayNext = (r_ridxNext>>1) ^ r_ridxNext;
 assign w_wgrayNext = (w_widxNext>>1) ^ w_widxNext;
 
 // domain crossing
+// gray code indices are crossed from domain one by continouously transferring with an intermediate register to make sure change happen correctly
 // cross write -> read
 logic [AW:0] rq1_wgray, rq2_wgray;
-initial {rq1_wgray, rq2_wgray} = 0;
+// initial {rq1_wgray, rq2_wgray} = 0;
 always_ff @(posedge r_clk, negedge r_rstn) begin
     if (!r_rstn) {rq1_wgray, rq2_wgray} <= 0;
     else {rq2_wgray, rq1_wgray} <= {rq1_wgray, w_wgray};
 end
 // cross read -> write
 logic [AW:0] wq1_rgray, wq2_rgray;
-initial {wq1_rgray, wq2_rgray} = 0;
+// initial {wq1_rgray, wq2_rgray} = 0;
 always_ff @(posedge w_clk, negedge w_rstn) begin
     if (!w_rstn) {wq1_rgray, wq2_rgray} <= 0;
     else {wq2_rgray, wq1_rgray} <= {wq1_rgray, r_rgray};
 end
 
+// normal read and write logic, with the exception that gray values are used directly instead of first converting them
 // write logic
 assign w_fullNext = (w_wgrayNext[AW:AW-1] == ~wq2_rgray[AW:AW-1]) & (w_wgrayNext[AW-2:0] == wq2_rgray[AW-2:0]);
 assign w_widxNext = w_widx + {{(AW){1'b0}}, (w_we & !w_full)};

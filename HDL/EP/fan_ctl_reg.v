@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+// controls fan speed with simple pwm
 module fan_ctl_reg #(
     parameter CNT_W = 8
 ) (

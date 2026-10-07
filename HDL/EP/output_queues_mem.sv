@@ -71,7 +71,6 @@ module output_queues_mem
     assign ena = 1;
     assign enb = 1;
     logic [Q_DB-1:0] rIdx;
-    initial rIdx = 0;
     logic re;
     logic [Q_DB-1:0] rIdxNext;
 
@@ -169,9 +168,9 @@ module output_queues_mem
         end
     endgenerate
     // available words
-    initial begin
-        for (int j = 0; j<NQ; j++) wWordsAvailable[j] = QUEUE_DEPTH;
-    end
+    // initial begin
+    //     for (int j = 0; j<NQ; j++) wWordsAvailable[j] = QUEUE_DEPTH;
+    // end
     always_ff @(posedge clk)
         if(!rstn) for (int j = 0; j<NQ; j++) wWordsAvailable[j] <= QUEUE_DEPTH;
         else wWordsAvailable <= wWordsAvailableNext;
@@ -186,10 +185,8 @@ module output_queues_mem
     // metadata
     wire [MAX_PKT_BITS-1:0] rPktLen;
     reg [MAX_PKT_BITS-1:0] rPktLenPrev;
-    initial rPktLenPrev = 0;
     wire [Q_DB:0] rStartIdx;
     logic [NQ-1:0][Q_DB:0] rIdxAvailable;
-    initial rIdxAvailable = 0;
     assign {rPktLen, rStartIdx} = doutMD[rQueue];
     // assign pktLens = {(UW-MAX_PKT_BITS)'(0),rPktLen};
 
@@ -201,7 +198,6 @@ module output_queues_mem
 
     // count down to zero from Pktlen
     logic [MAX_PKT_BITS-1:0] rCounter;
-    initial rCounter = 0;
     logic [MAX_PKT_BITS-1:0] rCounterNext;
 
     // // out_axis_tkeep

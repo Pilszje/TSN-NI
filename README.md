@@ -5,8 +5,11 @@ This project contains the (System)Verilog hardware description for a TSN capable
 Any software can be found in <code>c/</code>. 
 Any hardware can be found in <code>HDL/</code>
 
+## Simulating hardware
+There is a Makefile for simulating (most) hardware modules using testbenches, which can be found in <code>HDL/</code>.
+Simulation was performed using Verilator 5.053
 ## Building hardware
-Note: Hardware has only been tested on an AMD Kria KR260 development board. 
+Note: Hardware has only been tested on an AMD Kria KR260 development board and built using Vivado 2025.1. 
 <code>HDL/EP/TSN_ep.v</code> contains the top-level module of the network interface, which can be added to Vivado as a verilog module.\
 ### Ports
 - two AXIS interfaces for Ingress and Egress traffic to/from the MAC

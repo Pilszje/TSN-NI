@@ -2,6 +2,7 @@ This folder contains the hardware description for the network interface in <code
 Testbenches can be simulated with Verilator using the <code>Makefile</code>.
 
 # File descriptions
+For files in <code>EP/</code>
 |Name|Description|
 |----|-----------|
 |<code>axis_qvlan_up_conv.sv</code>|Widens an AXIS stream and extracts the PCP field if Q-tag is present in the frame|
@@ -35,8 +36,15 @@ Testbenches can be simulated with Verilator using the <code>Makefile</code>.
 |<code>time_sync/tsu_gmii.sv</code>|Same as above, but sniffing GMII instead of AXIS|
 
 
+
 # TODO
 - [ ] Check code documentation
+- [ ] update testbenches
 - [ ] combine two version of the top level module into one
 - [ ] general cleanup
 - [ ] Look for optimization possibilities
+- [x] stop using initial statements (new version of Verilator doesnt like it in combination with other processes). Make sure to zero signals on reset and use reset in testbenches
+- [ ] put test and debug logic behind define statements
+- [ ] make time overflow handling an option (time only overflows in the year 1970+585=2555) using parameters
+- [ ] automated testing i guess
+- [ ] Integrate an open eth MAC (verilog-ethernet)

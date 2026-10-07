@@ -204,11 +204,11 @@ always @(posedge rst or posedge clk) begin
       ptp_seqid <= ptp_data[15:0];
     // sum up clock id and source port id
     if (int_valid && ptp_cnt==10'd6)
-      ptp_cksum <= ptp_data[31:24] + ptp_data[23:16] + ptp_data[15: 8] + ptp_data[ 7: 0] + ptp_cksum;
+      ptp_cksum <= {4'b0,(ptp_data[31:24] + ptp_data[23:16] + ptp_data[15: 8] + ptp_data[ 7: 0])} + ptp_cksum;
     if (int_valid && ptp_cnt==10'd7)
-      ptp_cksum <= ptp_data[31:24] + ptp_data[23:16] + ptp_data[15: 8] + ptp_data[ 7: 0] + ptp_cksum;
+      ptp_cksum <= {4'b0,(ptp_data[31:24] + ptp_data[23:16] + ptp_data[15: 8] + ptp_data[ 7: 0])} + ptp_cksum;
     if (int_valid && ptp_cnt==10'd8)
-      ptp_cksum <= ptp_data[31:24] + ptp_data[23:16]                                     + ptp_cksum;
+      ptp_cksum <= {4'b0,(ptp_data[31:24] + ptp_data[23:16])}                                     + ptp_cksum;
   end
 end
 

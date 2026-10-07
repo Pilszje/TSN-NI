@@ -545,8 +545,8 @@ easylmb #(
 
 wire [31:0] widthDebug;
 axis_width_conv_down #(
-    .AXIS_IN_DW(AXIS_DW_INT),
-    .AXIS_OUT_DW(AXIS_DW_MAC),
+    .IN_DW(AXIS_DW_INT),
+    .OUT_DW(AXIS_DW_MAC),
     .DEPTH_BITS(1)
 ) OutWidthConv (
     .clk(clk),

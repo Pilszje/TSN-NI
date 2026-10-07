@@ -16,16 +16,11 @@ module ts_probe #(
     output reg [79:0] to,
     output reg toValid
 );
-initial toValid = 0;
-initial to = 0;
-
 
 logic iTransfer;
 assign iTransfer = iValid & iReady;
 
-
 logic eop;
-initial eop = 1;
 always_ff @( posedge clk ) begin
     if (~rstn) begin
         eop <= 1;

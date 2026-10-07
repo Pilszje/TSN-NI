@@ -35,27 +35,27 @@ module list_config_sm #(
 typedef enum logic {CALC_TIME, WAIT } states_t;
 states_t State;
 states_t StateNext;
-initial State = WAIT;
+// initial State = WAIT;
 assign StateOut = State;
 
 logic ControlListPointerNext;
-initial ControlListPointer = 0;
+// initial ControlListPointer = 0;
 
 
-initial ConfigPending = 0;
+// initial ConfigPending = 0;
 logic ConfigPendingNext;
 
-initial ConfigChangeTime = 0;
+// initial ConfigChangeTime = 0;
 logic [64:0] ConfigChangeTimeNext;
 
 logic ConfigChangePrev;
-initial ConfigChangePrev = 0;
+// initial ConfigChangePrev = 0;
 
 logic [64:0] CalcStart;
-initial CalcStart = 0;
+// initial CalcStart = 0;
 logic [64:0] CalcStartNext;
 logic [64:0] CalcNCycle;
-initial CalcNCycle = 0;
+// initial CalcNCycle = 0;
 logic [64:0] CalcNCycleNext;
 
 logic [64:0] CurrentTimeInt;
@@ -68,9 +68,9 @@ end
 
 // local copies of Admin vars (for timing purposes)
 logic [1:0] [63:0] BaseTimeInt;
-initial BaseTimeInt = 0;
+// initial BaseTimeInt = 0;
 logic [1:0] [63:0] CycleTimeInt;
-initial CycleTimeInt = 0;
+// initial CycleTimeInt = 0;
 
 always_comb begin : SMLogic
     // update next signals
@@ -140,7 +140,7 @@ always_comb begin : SMLogic
                     CalcNCycleNext = {1'b0,CycleTimeInt[ControlListPointer]};
                 end
                 end else begin
-                // reached when done
+                // reached when doneConfigPending
                 StateNext = WAIT;
                 ConfigChangeTimeNext = CalcStartNext;
                 ConfigPendingNext = 1;
@@ -165,6 +165,7 @@ always_ff @( posedge clk) begin : UpdateSM
         CalcNCycle <= 0;
         ControlListPointer <= 0;
         CycleTimeInt <= 0;
+        BaseTimeInt <= 0;
 
     end else begin
         // clock updates

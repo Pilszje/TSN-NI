@@ -1,43 +1,38 @@
 `timescale 1ns / 1ps
 
 module axis_width_conv_down #(
-    parameter AXIS_IN_DW = 32,
-    parameter AXIS_OUT_DW = 8,
-    parameter AXIS_TKEEP_WIDTH_IN = AXIS_IN_DW / 8,
+    parameter IN_DW = 32,
+    parameter OUT_DW = 8,
+    localparam IN_TKEEP_WIDTH = IN_DW / 8,
     parameter DEPTH_BITS = 5,
-    localparam NUM_TRANSFERS = AXIS_IN_DW/AXIS_OUT_DW
+    localparam NUM_TRANSFERS = IN_DW/OUT_DW
 ) (
-    input                                       clk,
-    input                                       rstn,
+    input                           clk,
+    input                           rstn,
 
-    // debug
-    output wire [31:0]                               debugOut,
-    input  [AXIS_IN_DW-1:0]             in_axis_tdata,
-    // input  [AXIS_TUSER_WIDTH-1:0]              in_axis_tuser,
-    input                                       in_axis_tvalid,
-    output reg                                  in_axis_tready,
-    input                                       in_axis_tlast,
-    input  [AXIS_TKEEP_WIDTH_IN - 1:0]   in_axis_tkeep,
+    input  [IN_DW-1:0]              in_axis_tdata,
+    input                           in_axis_tvalid,
+    output reg                      in_axis_tready,
+    input                           in_axis_tlast,
+    input  [IN_TKEEP_WIDTH - 1:0]   in_axis_tkeep,
     
-    output  [AXIS_OUT_DW-1:0]           out_axis_tdata,
-    // output  [AXIS_TUSER_WIDTH-1:0]              out_axis_tuser,
-    output                                     out_axis_tvalid,
-    input                                       out_axis_tready,
-    output                                     out_axis_tlast,
-    output [((AXIS_OUT_DW / 8)) - 1:0] out_axis_tkeep
+    output  [OUT_DW-1:0]            out_axis_tdata,
+    output                          out_axis_tvalid,
+    input                           out_axis_tready,
+    output                          out_axis_tlast,
+    output [(OUT_DW / 8) - 1:0]   out_axis_tkeep,
+    // debug
+    output wire [31:0]              debugOut
 
     
 );
-// debug
-// assign debugOut = 0;
-assign out_axis_tkeep = 1;
 
-// use a 2 depth fifo for the input?, why not
+// The input is a 2-deep fifo with width IN_DW
 logic we, re, full, empty;
-logic [(AXIS_IN_DW+AXIS_TKEEP_WIDTH_IN+1)-1:0] din, dout;
+logic [(IN_DW+IN_TKEEP_WIDTH+1)-1:0] din, dout;
 logic [DEPTH_BITS-1:0] almost_thresh = 1;
 fifo_fallthrough #(
-    .WIDTH(AXIS_IN_DW+AXIS_TKEEP_WIDTH_IN+1),
+    .WIDTH(IN_DW+IN_TKEEP_WIDTH+1),
     .DEPTH_BITS(DEPTH_BITS)
 ) InputFifo (
     .clk(clk),
@@ -48,57 +43,41 @@ fifo_fallthrough #(
     .dout(dout),
     .full(full),
     .empty(empty)
-    // .almost_full(almost_full),
-    // .almost_thresh(almost_thresh)
 );
-// now bind the fifo to input signals
-assign din = {in_axis_tlast,in_axis_tkeep,in_axis_tdata};
-assign in_axis_tready = !full;
-assign we = in_axis_tvalid & in_axis_tready;
 
-localparam DATA_IDX_BITS = $clog2(NUM_TRANSFERS);
-logic [DATA_IDX_BITS:0] DataIdx;
-initial DataIdx = 0;
+// Connect fifo to input interface
+assign din = {in_axis_tlast,in_axis_tkeep,in_axis_tdata}; // tlast, tkeep and data all needed
+assign in_axis_tready = !full; // accept data until fifo full
+assign we = in_axis_tvalid & in_axis_tready; // axis transfer triggers write enable
 
 // output
-typedef enum logic {IDLE, TRANSMISSION} outputStates_t;
-// outputStates_t OutputState;
-// initial OutputState = IDLE;
-// outputStates_t OutputStateNext;
+// keep track of where we are in the input word
+localparam DATA_IDX_BITS = $clog2(NUM_TRANSFERS);
+logic [DATA_IDX_BITS:0] DataIdx;
 
-// always_comb begin : OutputComb
-//     // need some sort of state
-//     re = 0;
-//     OutputStateNext = OutputState;
-//     case (OutputState) 
-//         IDLE: begin
-//             if (!empty)
-//         end
-//         TRANSMISSION: begin
+// fifo outputs, with an extra bit set to zero in tkeep, so DataIdx+1 is always valid
+wire [IN_TKEEP_WIDTH:0] FifoTkeep;
+wire FifoTlast;
+wire [NUM_TRANSFERS-1:0][OUT_DW-1:0]  FifoData;
+assign FifoTkeep[IN_TKEEP_WIDTH] = 0;
 
+assign {FifoTlast, FifoTkeep[IN_TKEEP_WIDTH-1:0], FifoData} = dout;
 
-//         end
-//     endcase
-// end
+// next word from input fifo can be read if last output word has been transmitted and the fifo isnt empty
+// Assuming first low bit of tkeep comes after the last high one
 assign re = !FifoTkeep[DataIdx+1] & !empty;
 
-
-wire [AXIS_TKEEP_WIDTH_IN:0] FifoTkeep;
-assign FifoTkeep[AXIS_TKEEP_WIDTH_IN] = 0;
-wire FifoTlast;
-wire[NUM_TRANSFERS-1:0][AXIS_OUT_DW-1:0]  FifoData;
-
-assign {FifoTlast, FifoTkeep[AXIS_TKEEP_WIDTH_IN-1:0], FifoData} = dout;
+// setting the outputs
 assign out_axis_tvalid = !empty;
 assign out_axis_tlast = FifoTlast & !FifoTkeep[DataIdx+1] & out_axis_tvalid;
 assign out_axis_tdata = FifoData[DataIdx];
+assign out_axis_tkeep = {(OUT_DW / 8){1'b1}};
 
+// incrementing index
 always_ff @(posedge clk) begin
     if(!rstn) begin
-        // OutputState <= IDLE;
         DataIdx <= 0;
     end else begin
-        // OutputState <= OutputStateNext;
         if(re) DataIdx <= 0;
         else if(out_axis_tvalid & out_axis_tready) DataIdx <= DataIdx+1;
     end

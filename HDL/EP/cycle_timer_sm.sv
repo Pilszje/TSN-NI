@@ -10,69 +10,71 @@ module cycle_timer_sm #(
     input rstn,
 
     // IO in Fig. 8-18 from Q2022
-    // inout reg ConfigPending,
-    input ConfigPending,
-    input [64:0] ConfigChangeTime,
+    input                           ConfigPending, // so the sm knows config will change
+    input [64:0]                    ConfigChangeTime, // when the config will change
+
     // Have no use for BaseTime, since list_config already calculates BaseTime + N*CycleTime
-    // input logic [63:0] [1:0] AdminBaseTime,
-    input logic [1:0] [63:0] AdminCycleTime,
-    input logic [1:0] [63:0] AdminCycleTimeExtension,
-    input [1:0] [LISTPTR_WIDTH:0] AdminControlListLength,
-    input GateEnabled,
-    input logic [63:0] CurrentTime, // PTP time
-    // this comes from list_config and indicates the admin vars idx to be used
-    input ControlListPointerIn,
+    // input logic [1:0] [63:0] AdminBaseTime,
+    input logic [1:0] [63:0]        AdminCycleTime,
+    input logic [1:0] [63:0]        AdminCycleTimeExtension,
+    input [1:0] [LISTPTR_WIDTH:0]   AdminControlListLength,
+    input                           GateEnabled,
+    input logic [63:0]              CurrentTime, // PTP time
 
-    output reg CycleStart,
-    output reg [LISTPTR_WIDTH:0]  OperControlListLength,
+    input                           ControlListPointerIn, // this comes from list_config and indicates the admin vars idx to use for next schedule
 
-    // used for WrStatus, indicates currently used idx
-    // can be seen as Oper pointer
-    output reg ControlListPointerOut,
+    // outputs for list execute
+    output reg                      CycleStart, // signals a cycle (re)start
+    output reg [LISTPTR_WIDTH:0]    OperControlListLength, // Length of active GCL
+    output reg                      ControlListPointerOut, // points to the active GCL
 
-    // debug outputs
-    output reg StateOut
+    // debug
+    output reg                      StateOut
 );
+
 // Vars according to fig 8-18 of Q2022
 logic [63:0] OperCycleTime;
-initial OperCycleTime = 0;
 // logic [63:0] OperCycleTimeExtension;
 logic [64:0] CycleStartTime;
 logic [64:0] CycleStartTimeNext;
 
+// internal controlList pointer. output pointer is set to internal Next pointer for quickest propagation
+// TODO: figure out if we can get rid of comb logic dependence for the output
 logic ControlListPointerNext;
 logic ControlListPointer;
-initial ControlListPointer = 0;
 assign ControlListPointerOut = ControlListPointerNext;
 
+// states as seen in figure 8-19 of Q2022
+// config state isnt needed here
 typedef enum logic {START_CYCLE, STAGE_WAIT} states_t;
 states_t State;
-initial State = STAGE_WAIT;
 states_t StateNext;
 assign StateOut = State;
 
 
 // Logic used for overflow
+// TODO: make this optional
 logic [64:0] CurrentTimeInt;
 logic ConfigPendingPrev;
-initial ConfigPendingPrev = 0;
 always_ff @(posedge clk) begin
     CurrentTimeInt <= {CurrentTimeInt[64],CurrentTime} + 1; // if msb (bit 64) becomes one it stays one
     if (!ConfigPending && ConfigPendingPrev) // reset condition for msb
         CurrentTimeInt[64] <= 0;
 end
 
+// we set this as soon as possible
+// TODO: this is also comb logic as an output
 assign OperControlListLength = AdminControlListLength[ControlListPointerNext];
 
 
 // some optimization
 logic [64:0] CyclePlusExtension; // Represents OperCycleTime+OperCycleTimeExtension
-initial CyclePlusExtension = 0;
 logic [64:0] NextCycleStartOffset; // Trigger offset for new CycleStart
 always_comb NextCycleStartOffset = OperCycleTime - 2*TIME_PERIOD; 
 logic [64:0] ConfigChangeBound; // used in two comparisons of the SM
 always_comb ConfigChangeBound = CyclePlusExtension + CurrentTimeInt;
 
+// State machine logic
 always_comb begin : SMLogic
     StateNext = State;
     ControlListPointerNext = ControlListPointer;
@@ -106,7 +108,7 @@ always_comb begin : SMLogic
     end
 end
 
-// update state
+// state machine updates
 always_ff @(posedge clk) begin
     if (!rstn) begin
         State                   <= STAGE_WAIT;
@@ -114,7 +116,6 @@ always_ff @(posedge clk) begin
         ControlListPointer      <= 0;
         ConfigPendingPrev <= 0;
         CyclePlusExtension <= 0;
-        // OperControlListLength <= 0;
         OperCycleTime <= 0;
     end
     else begin
@@ -123,10 +124,6 @@ always_ff @(posedge clk) begin
         ControlListPointer      <= ControlListPointerNext;
         ConfigPendingPrev <= ConfigPending;
 
-        // // Oper vars
-        // if (ConfigPending & !ConfigPendingPrev) begin
-            // OperControlListLength <= AdminControlListLength[!ControlListPointer];
-        // end
         // for transition to stage_wait to work properly, this can only change on CycleStart
         if (ControlListPointerNext != ControlListPointer) begin
             CyclePlusExtension <= AdminCycleTime[!ControlListPointer] + AdminCycleTimeExtension[!ControlListPointer];

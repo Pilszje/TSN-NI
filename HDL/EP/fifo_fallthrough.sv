@@ -26,19 +26,19 @@ module fifo_fallthrough #(
     // output wire              almost_full,
     // input [DEPTH_BITS-1:0]  almost_thresh
 );
-initial dout = 0;
 // memory
-// reg [DW-1:0] queue [0:DEPTH-1];
 // pointers
 reg [AW:0] wr_idx;
-initial wr_idx = 0;
 reg [AW:0] rd_idx;
-initial rd_idx = 0;
+logic [AW:0] rd_idx_next;
 reg [AW:0] rd_idx_int;
 // initial rd_idx_int = 0;
-logic [DW-1:0] dout_mem;
-logic [DW-1:0] dout_mem_int;
+// three dout versions
+logic [DW-1:0] dout_fall; // tmp dout for storing fallthrough value
+logic [DW-1:0] dout_final; // register to hold actual dout value after one cycle delay
+logic [DW-1:0] dout_mem; // directly connected to bram
 
+// bram
 simple_dual_bram #(
     .DEPTH(DEPTH),
     .WIDTH(WIDTH)
@@ -50,65 +50,41 @@ simple_dual_bram #(
     .addra(wr_idx[AW-1:0]),
     .addrb(rd_idx_int[AW-1:0]),
     .dia(din),
-    .dob(dout_mem_int)
+    .dob(dout_mem)
 );
-// this bram has a clock delay for read and write
-// i want to make the fifo fallthrough:
-// - so first element immediately visible after write operation
-// - an re will then show next element on clock edge
-
-// need to take into consideration: 
-// on first write, propagate din to dout
-// on a read enable dout should become mem[rd_idx+1] on first edge
-// if 
-
-// tmp dout for fallthrough
-logic [DW-1:0] dout_tmp;
-initial dout_tmp = 0;
 
 // flag indicating a din should be assigned to dout:
 logic fallthrough;
-// initial fallthrough = 1;
-assign fallthrough = empty | almost_empty;
+logic almost_empty;
+assign fallthrough = empty | almost_empty; // either currently empty or will be empty on next re assertion
 
-
-// make dout comb
 
 // updating vars
-logic past_re;
-initial past_re = 0;
+logic past_re; // always holds re of previous cycle
 always_ff @(posedge clk) begin
     if(rst) begin
         rd_idx <= 0;
         wr_idx <= 0;
-        // fallthrough <= 1;
-        dout_tmp <= 0;
+        dout_fall <= 0;
         past_re <= 0;
     end else begin
-        if (re && !empty) rd_idx <= rd_idx + 1;
-        if (we && !full) begin
+        if (re && !empty) rd_idx <= rd_idx + 1; // normal reading
+        if (we && !full) begin // normal writing
             wr_idx <= wr_idx + 1;
-            dout_tmp <= din;
+            dout_fall <= din; // need this if fifo is empty
         end
         past_re <= re;
-        if (fallthrough & !re) dout_mem <= dout_tmp;
-        else if (!fallthrough & re) dout_mem <= dout_mem_int;
-        // else if (empty) dout_mem <= dout_tmp;
+        if (fallthrough & !re) dout_final <= dout_fall; // set final value based on state of the queue
+        else if (!fallthrough & re) dout_final <= dout_mem;
     end
 end
-assign rd_idx_int =  fallthrough ? rd_idx : rd_idx+1;
-assign dout = fallthrough  ? dout_tmp : past_re ? dout_mem_int : dout_mem;
 
-// full and empty vars can just be comb
-// when is a fifo full: when wr_idx + 1 == rd_idx (but what about wrap around)
-// if we keep track of the space left in a variable updated on the clock, that will work
+assign rd_idx_int =  fallthrough ? rd_idx : rd_idx+1;
+assign dout = fallthrough  ? dout_fall : past_re ? dout_mem : dout_final; // can be one of three
+
+// normal full and empty calculation
 assign full = (rd_idx[AW] != wr_idx[AW]) & (rd_idx[AW-1:0] == wr_idx[AW-1:0]);
-// almost full is the same but uses a threshold
-// assign almost_full = space_left < (AW+1)'(almost_thresh);
-// empty is maximum space left (just means the upper bit of space_left is set)
 assign empty = rd_idx == wr_idx;
-logic almost_empty;
-logic [AW:0] rd_idx_next;
 assign rd_idx_next = rd_idx+1;
 assign almost_empty = rd_idx_next == wr_idx;
 

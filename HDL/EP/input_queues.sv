@@ -24,8 +24,7 @@ module input_queues
     input rstn,
 
     // input stream from the MAC
-    input [AXIS_IN_W-1:0]         in_axis_tdata,
-    // input [UW-1:0]              in_axis_tuser,
+    input [AXIS_IN_W-1:0]       in_axis_tdata,
     input                       in_axis_tvalid,
     output                      in_axis_tready,
     input                       in_axis_tlast,
@@ -37,48 +36,49 @@ module input_queues
     // - address line
     // - fifo empty (so the other side knows to not read)
     // - rDone: read enable on the fifo
+    // Outputs present on the AXI slave
     output reg [AXI_DW-1:0]         wData,
     output reg  [RAM_DB-1:0]        wAddr,
-    output reg                  we,
+    output reg                  we, // ram is put somewhere else cuz that was better somehow, so we need to expose we
     output [NQ-1:0][(MAX_PKT_BITS+Q_DB)-1:0] metaData,
     output [NQ-1:0] empty,
-    input  [NQ-1:0] rDone,
+    input  [NQ-1:0] rDone, // signalled by AXI master
 
+    // debug stuff
     output reg                       int_axis_tvalid,
     output reg                      int_axis_tready,
     output reg                       int_axis_tlast,
     output                      MDWritten
 );
     // First and foremost, we need to preprocess the 8 bit data and convert it to 32 bit, as well as extract the vlan tag (if it exists)
-    // we can can kill 2 flies with one clap here
+    // we can can kill 2 flies with one stone here
     // well just make a module for that
 
     assign MDWritten = |weMD;
 
-
+    // internal axis interface (output of up convert module)
     logic [AXIS_INT_W-1:0]         int_axis_tdata;
     logic [UW-1:0]              int_axis_tuser;
     // logic                       int_axis_tvalid;
     // logic                      int_axis_tready;
     // logic                       int_axis_tlast;
-    logic [AXIS_INT_W_B-3:0] int_axis_tkeep;
+    logic [AXIS_INT_W_B-3:0] int_axis_tkeep; // int_axis_tkeep is misused here to indicate number of bytes, instead of being a mask
 
     // transfer
     logic int_axis_transfer;
+    // always ready to accept read
     assign int_axis_tready = 1;
     assign int_axis_transfer = int_axis_tvalid & int_axis_tready;
 
     axis_qvlan_up_conv #(
-    .NUM_QUEUES(NUM_QUEUES),
-    .AXIS_IN_DW(AXIS_IN_W),
-    .AXIS_OUT_DW(AXIS_INT_W),
-    .AXIS_OUT_UW(UW)
+    .IN_DW(AXIS_IN_W),
+    .OUT_DW(AXIS_INT_W),
+    .OUT_UW(UW)
     
 ) axis_qvlan_up_conv_i (
     .clk(clk),
     .rstn(rstn),
     .in_axis_tdata(in_axis_tdata),
-    .in_axis_tuser(0),
     .in_axis_tvalid(in_axis_tvalid),
     .in_axis_tready(in_axis_tready),
     .in_axis_tlast(in_axis_tlast),
@@ -91,22 +91,18 @@ module input_queues
     .out_axis_tkeep(int_axis_tkeep)
 );
 
-    // Now we define the queue, which is just a dual port bram like on the output queues
-    // memory
-    logic ena,enb;
-    assign ena = 1;
-    assign enb = 1;
-    logic [Q_DB-1:0] rIdx,wIdx;
-    initial {rIdx,wIdx} = 0;
+    // memory related signals (some are commented out because external bram)
+    // logic [Q_DB-1:0] rIdx;
+    logic [Q_DB-1:0] wIdx;
     // logic [Q_DB-1:0] wIdxNext;
-    logic re;
-    logic [Q_DB-1:0] rIdxNext;
+    // logic re;
+    // logic [Q_DB-1:0] rIdxNext;
     // logic [31:0] din,dout;
     logic [Q_SB-1:0] rQueue,wQueue;
     // logic we;
 
 
-// we'll explode this out, cuz I need to make dout not clock triggered (the clock trigger happens somewhere else)
+// bram for the memory (currently sits in easyaxil)
     // simple_dual_bram #(
     //     .DEPTH(QUEUE_DEPTH*NQ),
     //     .WIDTH(32)
@@ -124,7 +120,8 @@ module input_queues
     // RAM Logic
     // logic [RAM_DB-1:0] rAddr;
 
-    // capture wAddr on the clock for reliability
+    // Trigger a memory write on an int_axis_transfer
+    assign wIdx = wStartAddr[wQueue] + wLenCnt-1;
     always_ff @(posedge clk) 
         if (int_axis_transfer) begin
            wAddr <= {wQueue,wIdx}; 
@@ -134,33 +131,16 @@ module input_queues
         else we <= 0;
     // assign wAddr = {wQueue,wIdx};
 
-    // (* RAM_STYLE="BLOCK" *)
-    // reg [AXI_DW-1:0] mem [RAM_DEPTH-1:0];
-
-    // always @(posedge clk) begin
-    //     if (we)
-    //         mem[wAddr] <= din;
-    // end
-    // dout is combinatorial because well make it triggered at the AXI IF
-    // assign dout = mem[rAddr];
-    // assign wData = int_axis_tdata;
-    // assign rData = dout;
     // END RAM logic
 
-    // for writing logic to mem:
-    // each time int_axis_tvalid goes high, we write to the queue pointed at by int_axis_tuser
-    // on the first transfer we note the start address
-    // then also keep count of how many bytes where written
-    // start address also serves as a starting point for new packets, so store it for each queue
+    // Metadata logic:
+
+    // we need to keep track of frame start addresses, as the host uses this to read from memory
     logic [NQ-1:0][Q_DB-1:0] wStartAddr;
     logic [NQ-1:0][Q_DB-1:0] rStartAddr;
-    logic [MAX_PKT_BITS-3:0] wLenCnt; // counts in words (since int_axis_tdata is 32 bits)
-    initial wLenCnt = 1;
-    initial wStartAddr = 0;
-    // initial rStartAddr = 0;
-    assign wQueue = int_axis_tuser[2:0];
+    logic [MAX_PKT_BITS-3:0] wLenCnt; // counts length in words (since int_axis_tdata is 32 bits)
+    assign wQueue = int_axis_tuser[2:0]; // which queue the data is meant for
 
-    // wStartAddr and wLenCnt are registered signals
     // wLenCnt increments on each transfer
     // wLenCnt is the counted packet len, each transfer increments it, but it is written to the fifo on the last transfer, so the written length is one too small. So we reset to 1
     always_ff @( posedge clk )
@@ -169,10 +149,9 @@ module input_queues
                 if (int_axis_tlast) wLenCnt <= 1;
                 else wLenCnt <= wLenCnt + 1;
 
+    // each queue will get its own metadata FIFO
 
-    // we need to store these somewhere upon a successful written packet
-    // each queue will get its own FIFO
-
+    // MD fifo signals
     logic [NQ-1:0] weMD;
     logic [NQ-1:0] reMD;
     logic [NQ-1:0] fullMem;
@@ -183,66 +162,42 @@ module input_queues
     assign reMD = rDone;
     assign empty = emptyMD;
 
-
+    // generate one fifo per prio
     generate
         genvar i;
         for(i=0; i < NUM_QUEUES; i++) begin
             fifo_fallthrough #(
                 .WIDTH(MAX_PKT_BITS+Q_DB),
                 .DEPTH_BITS($clog2(MAX_NO_PKTS))
-                // parameter PROG_FULL_THRESHOLD = 2**MAX_DEPTH_BITS - 1
             ) fifo (
                 .din({wLenCnt,int_axis_tkeep[1:0], wStartAddr[i]}),     // Data in
                 .we(weMD[i]),   // Write enable
                 .re(reMD[i]),   // Read the next word
                 .dout(doutMD[i]),    // Data out
                 .full(fullMD[i]),
-                // .nearly_full(),
-                // .prog_full(),
                 .empty(emptyMD[i]),
                 .clk(clk),
                 .rst(~rstn)
             );
             assign rStartAddr[i] = doutMD[i][Q_DB-1:0];
-            // assign rStartAddrNext[i] = 
-            // fallthrough_small_fifo #(
-            //     .WIDTH(MAX_PKT_BITS+Q_DB),
-            //     .MAX_DEPTH_BITS($clog2(MAX_NO_PKTS))
-            //     // parameter PROG_FULL_THRESHOLD = 2**MAX_DEPTH_BITS - 1
-            // ) fifo (
-            //     .din({wLenCnt,int_axis_tkeep[1:0], wStartAddr[i]}),     // Data in
-            //     .wr_en(weMD[i]),   // Write enable
-            //     .rd_en(reMD[i]),   // Read the next word
-            //     .dout(doutMD[i]),    // Data out
-            //     .full(fullMD[i]),
-            //     .nearly_full(),
-            //     .prog_full(),
-            //     .empty(emptyMD[i]),
-            //     .reset(~rstn),
-            //     .clk(clk)
-            // );
         end
     endgenerate
 
-    // now a packet can be dropped if it doesnt fit in the queue, which happens under the condition:
-    // The next wIdx is equal to rIdx AND int_axis_tlast is low
-    // dropping also happens if the respective fifo is full
-    // Potential improvements:
-    // we could take simultaneous reads and writes into account, but seems unnecessary
-    // a fifo re could happen while a packet is coming in. It might thus be good to write the packet to mem, even though the fifo is full
+    // A packet can be dropped under two conditions:
+    // - memory is full and data still needs to be written
+    // - Queue MD fifo is full
+    // Potential improvements (TODO):
+    // - keep writing if just fifo is full, as it might have a spot upon eop
     logic wDrop;
     assign wDrop = (((wIdx+1) == rStartAddr[wQueue]) & ~int_axis_tlast) | (fullMD[wQueue]);
 
-    // now for the write process we need a state machine:
-    // it waits for the first tvalid and changes its state if drop is low and starts capturing
-    // needs state
+    // write state machine
+    // states and signals
     typedef enum logic [1:0] {W_IDLE, W_WRITING, W_DROP} wStates_t;
     wStates_t wState;
-    initial wState = W_IDLE;
     wStates_t wStateNext;
     logic wAllow;
 
-    assign wIdx = wStartAddr[wQueue] + wLenCnt-1;
     always_comb begin
         wStateNext = wState;
         weMD = 0;
@@ -260,8 +215,9 @@ module input_queues
                     end else wStateNext = W_DROP;
             end
             W_WRITING: begin
-                // now we just stay here or drop comes high, upon which we have to restore widx and count
-                    // if tlast comes high we can write the metadata
+                // writing frame to memory.
+                // frame can still be dropped and state moves to idle if eop is reached
+                // if tlast comes high we can write the metadata
                 if (int_axis_transfer) begin
                     if (wDrop) wStateNext = W_DROP;
                     else begin
@@ -275,29 +231,24 @@ module input_queues
                 end
             end
             W_DROP: begin
+                // can only get out of this state at eop
                 if (int_axis_transfer & int_axis_tlast) wStateNext = W_IDLE;
             end
             default: begin end
         endcase
     end
+    // state update
     always_ff @( posedge clk )
         if (~rstn) wState <= W_IDLE;
         else wState <= wStateNext;
 
-    // wStartAddr is changed only on successful packet write, and is set to current value + wLenCnt
+    // updating wStartAddr
+    // updated only on successful frame write, and is set to current value + wLenCnt
     logic [Q_DB-1:0] wStartAddrNext;
-    // int_axis_tkeep is misused here to indicate number of bytes, instead of being a mask
-    // TODO: use tkeep correctly to get the proper number of bytes. For now just use 
     assign wStartAddrNext = wStartAddr[wQueue] + wLenCnt;
     always_ff @( posedge clk )
         if (~rstn) wStartAddr <= 0;
         // wStartAddr is updated on tlast (with current state being W_WRITING)
         else if (int_axis_tlast & int_axis_transfer & wState == W_WRITING) wStartAddr[wQueue] <= wStartAddrNext;
-
-
-// output of this module is:
-// - 32 bit data line
-// - show for each packet the fifo output
-// - address line
 
 endmodule

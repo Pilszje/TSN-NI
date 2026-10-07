@@ -134,13 +134,13 @@ initial begin
     #CLK dut.AxiSlave.r_rtc_ld_flags = 0;
 
 
-    S_AXI_AWADDR = 107<<2;
-    S_AXI_WDATA = genInterval;
-    #(4*CLK);
-    S_AXI_AWADDR = 106<<2;
-    S_AXI_WDATA = 32'({genBurstLen,genWQueue,genLength,1'b0,genOtherQueue, genEnabled,1'b1});
-    #(4*CLK);
-    S_AXI_AWADDR = 122<<2;
+    // S_AXI_AWADDR = 107<<2;
+    // S_AXI_WDATA = genInterval;
+    // #(4*CLK);
+    // S_AXI_AWADDR = 106<<2;
+    // S_AXI_WDATA = 32'({genBurstLen,genWQueue,genLength,1'b0,genOtherQueue, genEnabled,1'b1});
+    // #(4*CLK);
+    // S_AXI_AWADDR = 122<<2;
     // dut.AxiSlave.genEnabled = 1;
     // dut.AxiSlave.genEnabled = 1;
     // dut.AxiSlave.genInterval = 100;
@@ -244,8 +244,8 @@ assign memWIdx = startAddr + (cnt-1);
 logic [(NQ_B+dut.Q_DB)-1:0] wAddr;
 assign wAddr = {wQueue,memWIdx};
 logic [AXIS_DATA_WIDTH-1:0] firstWord;
-// assign S_AXI_AWADDR = (cnt == 0) ? {15'(64+wQueue),2'b0} : (cnt < NUM_TR) ? {2'b01,wAddr,2'b0} : (cnt == NUM_TR) ? {15'd54,2'b0} : 29<<2;
-// assign S_AXI_WDATA = (cnt == 0) ? 32'(wPktLen) : (cnt < NUM_TR) ? wData : (cnt == NUM_TR) ? 1<<wQueue : 32'hFFFF;
+assign S_AXI_AWADDR = (cnt == 0) ? {15'(64+wQueue),2'b0} : (cnt < NUM_TR) ? {2'b01,wAddr,2'b0} : (cnt == NUM_TR) ? {15'd54,2'b0} : 29<<2;
+assign S_AXI_WDATA = (cnt == 0) ? 32'(wPktLen) : (cnt < NUM_TR) ? wData : (cnt == NUM_TR) ? 1<<wQueue : 32'hFFFF;
 
 assign S_AXI_AWVALID = 1;
 assign S_AXI_WVALID = 1;
@@ -369,7 +369,9 @@ TSN_ep #(
     .S_AXI_RVALID(S_AXI_RVALID),
     .S_AXI_RREADY(S_AXI_RREADY),
     .S_AXI_RDATA(S_AXI_RDATA),
-    .S_AXI_RRESP(S_AXI_RRESP)
+    .S_AXI_RRESP(S_AXI_RRESP),
+
+    .fan()
 );
 
 taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_tx();
@@ -382,7 +384,6 @@ assign out_axis_tready = axis_tx.tready;
 // logic [6:0] tx_counter;
 // logic enable_loop;
 // initial enable_loop = 0;
-// initial tx_counter = 0;
 // always_ff @(posedge clk) begin
 //     if (rst) tx_counter <= 0;
 //     else begin

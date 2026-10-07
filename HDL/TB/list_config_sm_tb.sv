@@ -1,5 +1,4 @@
 `timescale 1ns / 1ps
-`include "datatypes.svh"
 module list_config_sm_tb
 ();
 localparam TIME_PERIOD = 1;
@@ -11,11 +10,11 @@ logic rstn;
 // inputs mentioned in figure 8-18 of Q2022
 logic ConfigChange;
 // logic ConfigChangeNext;
-TimeInterval_t [1:0] AdminBaseTime;
-TimeInterval_t [1:0] AdminCycleTime;
+logic [1:0] [63:0] AdminBaseTime;
+logic [1:0] [63:0] AdminCycleTime;
 
 // inputs not mentioned in the figure (why would you do this)
-TimeInterval_t CurrentTime;
+logic [63:0] CurrentTime;
 logic GateEnabled;
 
 // outputs mentioned in figure 8-18 of Q2022
@@ -25,15 +24,19 @@ logic [64:0] ConfigChangeTime;
 logic ControlListPointer;
 logic ControlListPointerCycle;
 
+logic IncrError;
+logic StateOut;
+
 always begin
     #0.5 clk <= 1;
     #0.5 clk <= 0;
 end
-always_ff @(posedge clk) CurrentTime <= CurrentTime + TIME_PERIOD;
+always_ff @(posedge clk)
+    if (!rstn) CurrentTime <= 0;
+    else CurrentTime <= CurrentTime + TIME_PERIOD;
 
 list_config_sm #(
-    .TIME_PERIOD(TIME_PERIOD),
-    .USE_FORMAL(USE_FORMAL)
+    .TIME_PERIOD(TIME_PERIOD)
 ) list_config_sm_i (
     .clk(clk),
     .rstn(rstn),
@@ -44,8 +47,9 @@ list_config_sm #(
     .GateEnabled(GateEnabled),
     .ConfigPending(ConfigPending),
     .ConfigChangeTime(ConfigChangeTime),
-    .ControlListPointerOut(ControlListPointer),
-    .ControlListPointerCycle(ControlListPointerCycle)
+    .ControlListPointer(ControlListPointer),
+    .IncrError(IncrError),
+    .StateOut(StateOut)
 );
 
 initial begin
@@ -56,7 +60,6 @@ initial begin
     ConfigChange = 0;
     AdminBaseTime = 0;
     AdminCycleTime = 0;
-    CurrentTime = 64'b0 - 10;
     GateEnabled = 0;
 
     // perform a reset

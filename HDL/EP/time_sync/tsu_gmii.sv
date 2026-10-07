@@ -403,10 +403,7 @@ logic [7:0] ptp_found_cnt;
 logic [7:0] q_wr_en_cnt;
 logic [7:0] q_not_empty_cnt;
 logic [7:0] int_eop_d1_cnt;
-initial ptp_found_cnt = 0;
-initial q_wr_en_cnt = 0;
-initial q_not_empty_cnt = 0;
-initial int_eop_d1_cnt = 0;
+
 assign debug = {int_eop_d1_cnt, q_not_empty_cnt, q_wr_en_cnt, ptp_found_cnt};
 always_ff @(posedge gmii_clk) begin
   if (q_rst) begin
