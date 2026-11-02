@@ -5,7 +5,6 @@ module axis_qvlan_up_conv #(
     parameter OUT_DW = 32,
     localparam OUT_DW_B = $clog2(OUT_DW),
     parameter OUT_UW = 16,
-    localparam IN_UW = 16,
     localparam IN_BUF_SIZE = 16,
     localparam IN_BUF_BITS = $clog2(IN_BUF_SIZE)
     

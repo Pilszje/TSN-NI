@@ -3,12 +3,24 @@
 
 module mac_tb ();
 
-logic [7:0] packet [66];
-assign packet = {   8'haa, 8'haa, 8'haa, 8'haa, 8'haa, 8'haa, 8'hbc, 8'hec, 8'ha0, 8'h41, 8'h6d, 8'hce, 8'h81, 8'h00, 8'ha0, 8'h06,
-                    8'h08, 8'h00, 8'h45, 8'h00, 8'h00, 8'h30, 8'h12, 8'h34, 8'h40, 8'h00, 8'hff, 8'h11, 8'h54, 8'hef, 8'h0a, 8'h2a,
-                    8'h00, 8'h01, 8'h0a, 8'h2a, 8'h00, 8'h45, 8'h01, 8'ha4, 8'h01, 8'h68, 8'h00, 8'h1c, 8'hc9, 8'hf2, 8'h69, 8'h69,
-                    8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69,
-                    8'h69, 8'hFF};
+// logic [7:0] packet [66];
+// assign packet = {   8'haa, 8'haa, 8'haa, 8'haa, 8'haa, 8'haa, 8'hbc, 8'hec, 8'ha0, 8'h41, 8'h6d, 8'hce, 8'h81, 8'h00, 8'ha0, 8'h06,
+//                     8'h08, 8'h00, 8'h45, 8'h00, 8'h00, 8'h30, 8'h12, 8'h34, 8'h40, 8'h00, 8'hff, 8'h11, 8'h54, 8'hef, 8'h0a, 8'h2a,
+//                     8'h00, 8'h01, 8'h0a, 8'h2a, 8'h00, 8'h45, 8'h01, 8'ha4, 8'h01, 8'h68, 8'h00, 8'h1c, 8'hc9, 8'hf2, 8'h69, 8'h69,
+//                     8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69, 8'h69,
+//                     8'h69, 8'hFF};
+
+// PTP packet?
+localparam PKT_LEN_ACT = 88;
+localparam PKT_LEN = PKT_LEN_ACT-2;
+localparam NUM_TR = (PKT_LEN_ACT>>2) + 1;
+logic [7:0] packet [PKT_LEN_ACT];
+assign packet = {      8'h01, 8'h00, 8'h5e, 8'h00, 8'h01, 8'h81, 8'h00, 8'h80, 8'h63, 8'h00, 8'h09, 8'hba, 8'h08, 8'h00, 8'h45, 8'h00,
+                        8'h00, 8'h48, 8'h45, 8'hb0, 8'h00, 8'h00, 8'h01, 8'h11, 8'hcf, 8'hc5, 8'hc0, 8'ha8, 8'h02, 8'h06, 8'he0, 8'h00,
+                        8'h01, 8'h81, 8'h01, 8'h3f, 8'h01, 8'h3f, 8'h00, 8'h34, 8'h00, 8'h00, 8'h10, 8'h02, 8'h00, 8'h2c, 8'h00, 8'h00,
+                        8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h80,
+                        8'h63, 8'hff, 8'hff, 8'h00, 8'h09, 8'hba, 8'h00, 8'h01, 8'h00, 8'h76, 8'h00, 8'h00, 8'h00, 8'h00, 8'h45, 8'hb1,
+                        8'h11, 8'h5c, 8'h0a, 8'h64, 8'hca, 8'h20,8'h00,8'h00};
 
 // start by generating clocks
 // 125 MHz and 125 MHz 90 degree shift
@@ -26,9 +38,12 @@ always begin
 end
 localparam CLK = 8;
 
+localparam PTP_TS_W = 80;
+logic [PTP_TS_W-1:0] currentTime;
+always_ff @(posedge clk) currentTime <= currentTime + 8;
+
 // rst
 logic rst;
-initial rst = 0;
 
 localparam logic SIM = 1'b1;
 localparam string VENDOR = "XILINX";
@@ -41,8 +56,8 @@ localparam logic USE_CLK90 = 1'b1;
 // AXIS if
 taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_phy3_tx();
 taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_phy3_tx_test();
-taxi_axis_if #(.DATA_W(96), .KEEP_W(1), .ID_W(8)) axis_phy3_tx_cpl();
-taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_phy3_rx();
+taxi_axis_if #(.DATA_W(PTP_TS_W), .KEEP_W(1), .ID_W(8)) axis_phy3_tx_cpl();
+taxi_axis_if #(.DATA_W(8), .USER_EN(1), .USER_W(PTP_TS_W+1)) axis_phy3_rx();
 taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_phy3_rx_test();
 
 taxi_axis_if #(.DATA_W(16), .KEEP_W(1), .KEEP_EN(0), .LAST_EN(0), .USER_EN(1), .USER_W(1), .ID_EN(1), .ID_W(8)) axis_phy3_stat();
@@ -71,25 +86,33 @@ logic        phy3_rgmii_reset_n;
 assign phy3_rgmii_rx_ctl = phy3_rgmii_tx_ctl;
 assign phy3_rgmii_rxd = phy3_rgmii_txd;
 
-taxi_eth_mac_1g_rgmii_fifo #(
+logic rx_clk;
+logic tx_clk;
+logic rx_rst;
+logic tx_rst;
+logic gtx_rst;
+
+// taxi_axis_if #(.DATA_W(16), .KEEP_W(1), .KEEP_EN(0), .LAST_EN(0), .USER_EN(1), .USER_W(1), .ID_EN(1), .ID_W(8)) axis_phy3_stat();
+
+// verilator lint_off PINMISSING
+// verilator lint_off PROCASSINIT
+taxi_eth_mac_1g_rgmii #(
     .SIM(SIM),
     .VENDOR(VENDOR),
     .FAMILY(FAMILY),
     .USE_CLK90(USE_CLK90),
-    .PADDING_EN(1),
-    .MIN_FRAME_LEN(64),
     .STAT_EN(1'b0),
-    .TX_FIFO_DEPTH(16384),
-    .TX_FRAME_FIFO(1),
-    .RX_FIFO_DEPTH(16384),
-    .RX_FRAME_FIFO(1)
+    .PTP_TS_EN(1'b1),
+    .PTP_TS_W(PTP_TS_W)
 )
 mac_dut (
     .gtx_clk(clk),
     .gtx_clk90(clk90),
-    .gtx_rst(rst),
-    .logic_clk(clk),
-    .logic_rst(rst),
+    .gtx_rst(gtx_rst),
+    .rx_clk(rx_clk),
+    .tx_clk(tx_clk),
+    .rx_rst(rx_rst),
+    .tx_rst(tx_rst),
 
     /*
      * Transmit interface (AXI stream)
@@ -112,36 +135,151 @@ mac_dut (
     .rgmii_txd(phy3_rgmii_txd),
     .rgmii_tx_ctl(phy3_rgmii_tx_ctl),
 
+    /*  
+     * PTP
+     */
+    .tx_ptp_ts(currentTime),
+    .rx_ptp_ts(currentTime),
+
+        /*
+     * Link-level Flow Control (LFC) (IEEE 802.3 annex 31B PAUSE)
+     */
+    .tx_lfc_req(0),
+    .tx_lfc_resend(0),
+    .rx_lfc_en(0),
+    .rx_lfc_req(),
+    .rx_lfc_ack(0),
+
+    /*
+     * Priority Flow Control (PFC) (IEEE 802.3 annex 31D PFC)
+     */
+    .tx_pfc_req(0),
+    .tx_pfc_resend(0),
+    .rx_pfc_en(0),
+    .rx_pfc_req(),
+    .rx_pfc_ack(0),
+
+    /*
+     * Pause interface
+     */
+    .tx_lfc_pause_en(0),
+    .tx_pause_req(0),
+    .tx_pause_ack(),
+
     /*
      * Statistics
      */
-    .stat_clk(clk),
-    .stat_rst(rst),
+    .stat_clk(0),
+    .stat_rst(0),
     .m_axis_stat(axis_phy3_stat),
 
     /*
      * Status
      */
-    .tx_error_underflow(),
-    .tx_fifo_overflow(),
-    .tx_fifo_bad_frame(),
-    .tx_fifo_good_frame(),
-    .rx_error_bad_frame(),
-    .rx_error_bad_fcs(),
-    .rx_fifo_overflow(),
-    .rx_fifo_bad_frame(),
-    .rx_fifo_good_frame(),
+    // .rx_error_bad_frame(rx_error_bad_frame_int),
+    .tx_start_packet(),
+    .stat_tx_byte(),
+    .stat_tx_pkt_len(),
+    .stat_tx_pkt_ucast(),
+    .stat_tx_pkt_mcast(),
+    .stat_tx_pkt_bcast(),
+    .stat_tx_pkt_vlan(),
+    .stat_tx_pkt_good(),
+    .stat_tx_pkt_bad(),
+    .stat_tx_pad_frame(),
+    .stat_tx_err_oversize(),
+    .stat_tx_err_user(),
+    .stat_tx_err_underflow(),
+    .rx_start_packet(),
+    .stat_rx_byte(),
+    .stat_rx_pkt_len(),
+    .stat_rx_pkt_fragment(),
+    .stat_rx_pkt_jabber(),
+    .stat_rx_pkt_ucast(),
+    .stat_rx_pkt_mcast(),
+    .stat_rx_pkt_bcast(),
+    .stat_rx_pkt_vlan(),
+    .stat_rx_pkt_good(),
+    .stat_rx_pkt_bad(),
+    .stat_rx_err_oversize(),
+    .stat_rx_err_bad_fcs(),
+    .stat_rx_err_bad_block(),
+    .stat_rx_err_framing(),
+    .stat_rx_err_preamble(),
+    .stat_rx_fifo_drop(),
     .link_speed(),
+    .stat_tx_mcf(),
+    .stat_rx_mcf(),
+    .stat_tx_lfc_pkt(),
+    .stat_tx_lfc_xon(),
+    .stat_tx_lfc_xoff(),
+    .stat_tx_lfc_paused(),
+    .stat_tx_pfc_pkt(),
+    .stat_tx_pfc_xon(),
+    .stat_tx_pfc_xoff(),
+    .stat_tx_pfc_paused(),
+    .stat_rx_lfc_pkt(),
+    .stat_rx_lfc_xon(),
+    .stat_rx_lfc_xoff(),
+    .stat_rx_lfc_paused(),
+    .stat_rx_pfc_pkt(),
+    .stat_rx_pfc_xon(),
+    .stat_rx_pfc_xoff(),
+    .stat_rx_pfc_paused(),
 
     /*
      * Configuration
      */
-    .cfg_tx_max_pkt_len(16'd1518),
-    .cfg_tx_ifg(8'd12),
-    .cfg_tx_enable(1'b1),
-    .cfg_rx_max_pkt_len(16'd9218),
-    .cfg_rx_enable(1'b1)
+    .cfg_tx_pad_en(),
+    .cfg_tx_min_pkt_len(64),
+    .cfg_tx_max_pkt_len(1518),
+    .cfg_tx_ifg(12),
+    .cfg_tx_enable(1),
+    .cfg_rx_max_pkt_len(1518),
+    .cfg_rx_enable(1),
+    .cfg_mcf_rx_eth_dst_mcast('0),
+    .cfg_mcf_rx_check_eth_dst_mcast('0),
+    .cfg_mcf_rx_eth_dst_ucast('0),
+    .cfg_mcf_rx_check_eth_dst_ucast('0),
+    .cfg_mcf_rx_eth_src('0),
+    .cfg_mcf_rx_check_eth_src('0),
+    .cfg_mcf_rx_eth_type('0),
+    .cfg_mcf_rx_opcode_lfc('0),
+    .cfg_mcf_rx_check_opcode_lfc('0),
+    .cfg_mcf_rx_opcode_pfc('0),
+    .cfg_mcf_rx_check_opcode_pfc('0),
+    .cfg_mcf_rx_forward('0),
+    .cfg_mcf_rx_enable('0),
+    .cfg_tx_lfc_eth_dst('0),
+    .cfg_tx_lfc_eth_src('0),
+    .cfg_tx_lfc_eth_type('0),
+    .cfg_tx_lfc_opcode('0),
+    .cfg_tx_lfc_en('0),
+    .cfg_tx_lfc_quanta('0),
+    .cfg_tx_lfc_refresh('0),
+    .cfg_tx_pfc_eth_dst('0),
+    .cfg_tx_pfc_eth_src('0),
+    .cfg_tx_pfc_eth_type('0),
+    .cfg_tx_pfc_opcode('0),
+    .cfg_tx_pfc_en('0),
+    .cfg_tx_pfc_quanta('{8{'0}}),
+    .cfg_tx_pfc_refresh('{8{'0}}),
+    .cfg_rx_lfc_opcode('0),
+    .cfg_rx_lfc_en('0),
+    .cfg_rx_pfc_opcode('0),
+    .cfg_rx_pfc_en('0)
+
+    // /*
+    //  * Configuration
+    //  */
+    // .cfg_tx_max_pkt_len(16'd1518),
+    // .cfg_tx_ifg(8'd12),
+    // .cfg_tx_enable(1'b1),
+    // .cfg_rx_max_pkt_len(16'd9218),
+    // .cfg_rx_enable(1'b1)
 );
+// verilator lint_on PINMISSING
+// verilator lint_on PROCASSINIT
 
 // timeline
 initial begin
@@ -164,8 +302,7 @@ end
 logic [6:0] tx_counter;
 logic enable_loop;
 initial enable_loop = 0;
-initial tx_counter = 0;
-always_ff @(posedge clk) begin
+always_ff @(posedge clk or posedge rst) begin
     if (rst) tx_counter <= 0;
     else begin
         // if(in_axis_tvalid & in_axis_tready)
@@ -221,7 +358,7 @@ localparam AXIS_TUSER_WIDTH = 16;
 // ) ep (
 //     .clk(clk),
 //     .aresetn(rstn),
-//     .CurrentTime(),
+//     .currentTime(),
 //     .in_axis_tdata(in_axis_tdata),
 //     .in_axis_tkeep(in_axis_tkeep),
 //     .in_axis_tuser(in_axis_tuser),

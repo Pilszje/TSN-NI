@@ -47,4 +47,4 @@ For files in <code>EP/</code>
 - [ ] put test and debug logic behind define statements
 - [ ] make time overflow handling an option (time only overflows in the year 1970+585=2555) using parameters
 - [ ] automated testing i guess
-- [ ] Integrate an open eth MAC (verilog-ethernet)
+- [ ] Either integrate an open eth MAC (verilog-ethernet), or remove any dependency on a specific MAC implementation

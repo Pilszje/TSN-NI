@@ -28,28 +28,30 @@ module TSN_ep_tb ();
 //                     8'h68, 8'hFF, 8'h0, 8'h0};
 
 // PTP packet?
-// localparam PKT_LEN_ACT = 88;
-// localparam PKT_LEN = PKT_LEN_ACT-2;
-// localparam NUM_TR = (PKT_LEN_ACT>>2) + 1;
-// logic [7:0] packet [PKT_LEN_ACT];
-// initial packet = {      8'h01, 8'h00, 8'h5e, 8'h00, 8'h01, 8'h81, 8'h00, 8'h80, 8'h63, 8'h00, 8'h09, 8'hba, 8'h08, 8'h00, 8'h45, 8'h00,
-//                         8'h00, 8'h48, 8'h45, 8'hb0, 8'h00, 8'h00, 8'h01, 8'h11, 8'hcf, 8'hc5, 8'hc0, 8'ha8, 8'h02, 8'h06, 8'he0, 8'h00,
-//                         8'h01, 8'h81, 8'h01, 8'h3f, 8'h01, 8'h3f, 8'h00, 8'h34, 8'h00, 8'h00, 8'h10, 8'h02, 8'h00, 8'h2c, 8'h00, 8'h00,
-//                         8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h80,
-//                         8'h63, 8'hff, 8'hff, 8'h00, 8'h09, 8'hba, 8'h00, 8'h01, 8'h00, 8'h76, 8'h00, 8'h00, 8'h00, 8'h00, 8'h45, 8'hb1,
-//                         8'h11, 8'h5c, 8'h0a, 8'h64, 8'hca, 8'h20,8'h00,8'h00};
-
-
-localparam PKT_LEN_ACT = 68;
-localparam PKT_LEN = PKT_LEN_ACT;
-localparam NUM_TR = (PKT_LEN_ACT>>2) + 1;              
+localparam PKT_LEN_ACT = 88;
+localparam PKT_LEN = PKT_LEN_ACT-2;
+localparam NUM_TR = (PKT_LEN_ACT>>2) + 1;
 logic [7:0] packet [PKT_LEN_ACT];
-initial packet = {  8'h01, 8'h80, 8'hc2, 8'h00, 8'h00, 8'h0e, 8'h00, 8'h80, 8'h63, 8'h00, 8'h09, 8'hba, 8'h88, 8'hf7, 8'h02, 8'h02,
-                    8'h00, 8'h36, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00,
-                    8'h00, 8'h00, 8'h00, 8'h80, 8'h63, 8'hff, 8'hff, 8'h00, 8'h09, 8'hba, 8'h00, 8'h02, 8'h04, 8'h5e, 8'h05, 8'h0f,
-                    8'h00, 8'h00, 8'h45, 8'hb1, 8'h11, 8'h49, 8'h1c, 8'h41, 8'h78, 8'hf4, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00,
-                    8'h00, 8'h00, 8'h00, 8'h00 
-};
+initial packet = {      8'h01, 8'h00, 8'h5e, 8'h00, 8'h01, 8'h81, 8'h00, 8'h80, 8'h63, 8'h00, 8'h09, 8'hba, 8'h08, 8'h00, 8'h45, 8'h00,
+                        8'h00, 8'h48, 8'h45, 8'hb0, 8'h00, 8'h00, 8'h01, 8'h11, 8'hcf, 8'hc5, 8'hc0, 8'ha8, 8'h02, 8'h06, 8'he0, 8'h00,
+                        8'h01, 8'h81, 8'h01, 8'h3f, 8'h01, 8'h3f, 8'h00, 8'h34, 8'h00, 8'h00, 8'h10, 8'h02, 8'h00, 8'h2c, 8'h00, 8'h00,
+                        8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h80,
+                        8'h63, 8'hff, 8'hff, 8'h00, 8'h09, 8'hba, 8'h00, 8'h01, 8'h00, 8'h76, 8'h00, 8'h00, 8'h00, 8'h00, 8'h45, 8'hb1,
+                        8'h11, 8'h5c, 8'h0a, 8'h64, 8'hca, 8'h20,8'h00,8'h00};
+
+
+// localparam PKT_LEN_ACT = 68;
+// localparam PKT_LEN = PKT_LEN_ACT;
+// localparam NUM_TR = (PKT_LEN_ACT>>2) + 1;              
+// logic [7:0] packet [PKT_LEN_ACT];
+// initial packet = {  8'h01, 8'h80, 8'hc2, 8'h00, 8'h00, 8'h0e, 8'h00, 8'h80, 8'h63, 8'h00, 8'h09, 8'hba, 8'h88, 8'hf7, 8'h02, 8'h02,
+//                     8'h00, 8'h36, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00,
+//                     8'h00, 8'h00, 8'h00, 8'h80, 8'h63, 8'hff, 8'hff, 8'h00, 8'h09, 8'hba, 8'h00, 8'h02, 8'h04, 8'h5e, 8'h05, 8'h0f,
+//                     8'h00, 8'h00, 8'h45, 8'hb1, 8'h11, 8'h49, 8'h1c, 8'h41, 8'h78, 8'hf4, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00,
+//                     8'h00, 8'h00, 8'h00, 8'h00 
+// };
+
+
 // start by generating clocks
 // 125 MHz and 125 MHz 90 degree shift
 
@@ -114,6 +116,7 @@ initial begin
     // #(10*CLK) rstn = 0;
     // #(2*CLK) rstn = 1;
     dut.AxiSlave.r_FlagsAndGateStates[9:2] = 8'hFF;
+    dut.AxiSlave.r_ptp_msgid_masks = 16'hFFFF;
     #(10*CLK);
     // enable a simple schedule
     // dut.AxiSlave.r_AdminControlList[0][0] = 32'hF000000F;
@@ -261,7 +264,7 @@ assign S_AXI_ARVALID = 1;
 
 logic rstn = !rst;
 
-assign out_axis_tready = 1;
+// assign out_axis_tready = axis_tx.tready;
 
 
 // assign dut.wQueue = wQueue;
@@ -289,7 +292,10 @@ wire mac_gmii_rx_clk;
 wire [7:0] mac_gmii_txd;
 wire mac_gmii_tx_en;
 wire mac_gmii_tx_clk;
-taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_rx();
+taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(PTP_TS_W+1)) axis_rx();
+
+localparam PTP_TS_W = 80;
+logic [PTP_TS_W-1:0] ptpTime;
 
 wire time_one_pps_out;
 TSN_ep #(
@@ -314,12 +320,6 @@ TSN_ep #(
     .clk(clk),
     .aresetn(rstn),
     // .CurrentTime(),
-    .mac_gmii_rxd_in(mac_gmii_rxd),
-    .mac_gmii_rx_dv_in(mac_gmii_rx_dv),
-    .mac_gmii_rx_clk(mac_gmii_rx_clk),
-    .mac_gmii_txd_in(mac_gmii_txd),
-    .mac_gmii_tx_en_in(mac_gmii_tx_en),
-    .mac_gmii_tx_clk(mac_gmii_tx_clk),
     // .in_axis_tdata(in_axis_tdata),
     // .in_axis_tkeep(in_axis_tkeep),
     // .in_axis_tuser(in_axis_tuser),
@@ -337,8 +337,10 @@ TSN_ep #(
     // .out_axis_tkeep(out_axis_tkeep),
     // .out_axis_tuser(out_axis_tuser),
     .out_axis_tvalid(out_axis_tvalid),
-    .out_axis_tready(out_axis_tready),
+    .out_axis_tready(axis_tx.tready),
     .out_axis_tlast(out_axis_tlast),
+    .in_ts(axis_rx.tuser[PTP_TS_W:1]),
+    .out_ts(axis_tx_cpl.tdata),
     // .wQueue(wQueue),
     // .wData(wData),
     // .wLast(wLast),
@@ -346,6 +348,7 @@ TSN_ep #(
     // .wPktLen(wPktLen),
     // .out_axis_tid(),
     // .S_AXI_ACLK(clk),
+    .ptpTime(ptpTime),
     .time_one_pps_in(0),
     .time_one_pps_out(time_one_pps_out),
     .ext_in(time_one_pps_out),
@@ -400,30 +403,32 @@ assign out_axis_tready = axis_tx.tready;
 // assign axis_tx.tvalid = 1'd1;
 // assign axis_tx.tlast = tx_counter == PKT_LEN-1;
 
-taxi_axis_if #(.DATA_W(96), .KEEP_W(1), .ID_W(8)) axis_tx_cpl();
+taxi_axis_if #(.DATA_W(PTP_TS_W), .KEEP_W(1), .ID_W(8)) axis_tx_cpl();
 
 taxi_axis_if #(.DATA_W(16), .KEEP_W(1), .KEEP_EN(0), .LAST_EN(0), .USER_EN(1), .USER_W(1), .ID_EN(1), .ID_W(8)) axis_stat();
 
+logic rx_clk;
+logic tx_clk;
+logic rx_rst;
+logic tx_rst;
 
-taxi_eth_mac_1g_rgmii_fifo #(
+taxi_eth_mac_1g_rgmii #(
     .SIM(SIM),
     .VENDOR(VENDOR),
     .FAMILY(FAMILY),
     .USE_CLK90(USE_CLK90),
-    .PADDING_EN(1),
-    .MIN_FRAME_LEN(64),
     .STAT_EN(1'b0),
-    .TX_FIFO_DEPTH(16384),
-    .TX_FRAME_FIFO(0),
-    .RX_FIFO_DEPTH(16384),
-    .RX_FRAME_FIFO(0)
+    .PTP_TS_EN(1'b1),
+    .PTP_TS_W(PTP_TS_W)
 )
 mac_dut (
     .gtx_clk(clk),
     .gtx_clk90(clk90),
     .gtx_rst(rst),
-    .logic_clk(clk),
-    .logic_rst(rst90),
+    .rx_clk(rx_clk),
+    .tx_clk(tx_clk),
+    .rx_rst(rx_rst),
+    .tx_rst(tx_rst),
 
     /*
      * Transmit interface (AXI stream)
@@ -437,7 +442,7 @@ mac_dut (
     .m_axis_rx(axis_rx),
 
     /*
-     * gmii interface
+     * RGMII interface
      */
     .rgmii_rx_clk(rx_rgmii_clk),
     .rgmii_rxd(rx_rgmii_data),
@@ -446,42 +451,148 @@ mac_dut (
     .rgmii_txd(tx_rgmii_data),
     .rgmii_tx_ctl(tx_rgmii_ctrl),
 
+    /*  
+     * PTP
+     */
+    .tx_ptp_ts(ptpTime),
+    .rx_ptp_ts(ptpTime),
+
+        /*
+     * Link-level Flow Control (LFC) (IEEE 802.3 annex 31B PAUSE)
+     */
+    .tx_lfc_req(0),
+    .tx_lfc_resend(0),
+    .rx_lfc_en(0),
+    .rx_lfc_req(),
+    .rx_lfc_ack(0),
+
+    /*
+     * Priority Flow Control (PFC) (IEEE 802.3 annex 31D PFC)
+     */
+    .tx_pfc_req(0),
+    .tx_pfc_resend(0),
+    .rx_pfc_en(0),
+    .rx_pfc_req(),
+    .rx_pfc_ack(0),
+
+    /*
+     * Pause interface
+     */
+    .tx_lfc_pause_en(0),
+    .tx_pause_req(0),
+    .tx_pause_ack(),
+
     /*
      * Statistics
      */
-    .stat_clk(clk),
-    .stat_rst(rst),
+    .stat_clk(0),
+    .stat_rst(0),
     .m_axis_stat(axis_stat),
 
     /*
      * Status
      */
-    .tx_error_underflow(),
-    .tx_fifo_overflow(),
-    .tx_fifo_bad_frame(),
-    .tx_fifo_good_frame(),
-    .rx_error_bad_frame(),
-    .rx_error_bad_fcs(),
-    .rx_fifo_overflow(),
-    .rx_fifo_bad_frame(),
-    .rx_fifo_good_frame(),
+    // .rx_error_bad_frame(rx_error_bad_frame_int),
+    .tx_start_packet(),
+    .stat_tx_byte(),
+    .stat_tx_pkt_len(),
+    .stat_tx_pkt_ucast(),
+    .stat_tx_pkt_mcast(),
+    .stat_tx_pkt_bcast(),
+    .stat_tx_pkt_vlan(),
+    .stat_tx_pkt_good(),
+    .stat_tx_pkt_bad(),
+    .stat_tx_pad_frame(),
+    .stat_tx_err_oversize(),
+    .stat_tx_err_user(),
+    .stat_tx_err_underflow(),
+    .rx_start_packet(),
+    .stat_rx_byte(),
+    .stat_rx_pkt_len(),
+    .stat_rx_pkt_fragment(),
+    .stat_rx_pkt_jabber(),
+    .stat_rx_pkt_ucast(),
+    .stat_rx_pkt_mcast(),
+    .stat_rx_pkt_bcast(),
+    .stat_rx_pkt_vlan(),
+    .stat_rx_pkt_good(),
+    .stat_rx_pkt_bad(),
+    .stat_rx_err_oversize(),
+    .stat_rx_err_bad_fcs(),
+    .stat_rx_err_bad_block(),
+    .stat_rx_err_framing(),
+    .stat_rx_err_preamble(),
+    .stat_rx_fifo_drop(),
     .link_speed(),
+    .stat_tx_mcf(),
+    .stat_rx_mcf(),
+    .stat_tx_lfc_pkt(),
+    .stat_tx_lfc_xon(),
+    .stat_tx_lfc_xoff(),
+    .stat_tx_lfc_paused(),
+    .stat_tx_pfc_pkt(),
+    .stat_tx_pfc_xon(),
+    .stat_tx_pfc_xoff(),
+    .stat_tx_pfc_paused(),
+    .stat_rx_lfc_pkt(),
+    .stat_rx_lfc_xon(),
+    .stat_rx_lfc_xoff(),
+    .stat_rx_lfc_paused(),
+    .stat_rx_pfc_pkt(),
+    .stat_rx_pfc_xon(),
+    .stat_rx_pfc_xoff(),
+    .stat_rx_pfc_paused(),
 
     /*
      * Configuration
      */
-    .cfg_tx_max_pkt_len(16'd1518),
-    .cfg_tx_ifg(8'd12),
-    .cfg_tx_enable(1'b1),
-    .cfg_rx_max_pkt_len(16'd9218),
-    .cfg_rx_enable(1'b1),
+    .cfg_tx_pad_en(),
+    .cfg_tx_min_pkt_len(64),
+    .cfg_tx_max_pkt_len(1518),
+    .cfg_tx_ifg(12),
+    .cfg_tx_enable(1),
+    .cfg_rx_max_pkt_len(1518),
+    .cfg_rx_enable(1),
+    .cfg_mcf_rx_eth_dst_mcast('0),
+    .cfg_mcf_rx_check_eth_dst_mcast('0),
+    .cfg_mcf_rx_eth_dst_ucast('0),
+    .cfg_mcf_rx_check_eth_dst_ucast('0),
+    .cfg_mcf_rx_eth_src('0),
+    .cfg_mcf_rx_check_eth_src('0),
+    .cfg_mcf_rx_eth_type('0),
+    .cfg_mcf_rx_opcode_lfc('0),
+    .cfg_mcf_rx_check_opcode_lfc('0),
+    .cfg_mcf_rx_opcode_pfc('0),
+    .cfg_mcf_rx_check_opcode_pfc('0),
+    .cfg_mcf_rx_forward('0),
+    .cfg_mcf_rx_enable('0),
+    .cfg_tx_lfc_eth_dst('0),
+    .cfg_tx_lfc_eth_src('0),
+    .cfg_tx_lfc_eth_type('0),
+    .cfg_tx_lfc_opcode('0),
+    .cfg_tx_lfc_en('0),
+    .cfg_tx_lfc_quanta('0),
+    .cfg_tx_lfc_refresh('0),
+    .cfg_tx_pfc_eth_dst('0),
+    .cfg_tx_pfc_eth_src('0),
+    .cfg_tx_pfc_eth_type('0),
+    .cfg_tx_pfc_opcode('0),
+    .cfg_tx_pfc_en('0),
+    .cfg_tx_pfc_quanta('{8{'0}}),
+    .cfg_tx_pfc_refresh('{8{'0}}),
+    .cfg_rx_lfc_opcode('0),
+    .cfg_rx_lfc_en('0),
+    .cfg_rx_pfc_opcode('0),
+    .cfg_rx_pfc_en('0)
 
-    .mac_gmii_rxd_out(mac_gmii_rxd),
-    .mac_gmii_rx_dv_out(mac_gmii_rx_dv),
-    .mac_gmii_rx_clk(mac_gmii_rx_clk),
-    .mac_gmii_txd_out(mac_gmii_txd),
-    .mac_gmii_tx_en_out(mac_gmii_tx_en),
-    .mac_gmii_tx_clk(mac_gmii_tx_clk)
+    // /*
+    //  * Configuration
+    //  */
+    // .cfg_tx_max_pkt_len(16'd1518),
+    // .cfg_tx_ifg(8'd12),
+    // .cfg_tx_enable(1'b1),
+    // .cfg_rx_max_pkt_len(16'd9218),
+    // .cfg_rx_enable(1'b1)
 );
 
 endmodule

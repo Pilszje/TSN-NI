@@ -1,0 +1,6 @@
+[submodule "HDL/verilog-ethernet"]
+	path = HDL/verilog-ethernet
+	url = https://github.com/alexforencich/verilog-ethernet
+[submodule "HDL/taxi"]
+	path = HDL/taxi
+	url = git@github.com:Pilszje/taxi.git

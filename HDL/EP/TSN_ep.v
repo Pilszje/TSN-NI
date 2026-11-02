@@ -1,5 +1,7 @@
 `timescale 1ns / 1ps
 // `define PKTGEN
+// `define EXPERIMENTS
+`define DEBUG
 
 module TSN_ep #(
     parameter AXIS_DW_INT=32,
@@ -34,8 +36,9 @@ module TSN_ep #(
     parameter BURST_B = 8,
     parameter EXT_CNT = 100,
     localparam EXT_CNT_B = $clog2(EXT_CNT),
-    parameter TIME_PERIOD = 8
-) (
+    parameter TIME_PERIOD = 8,
+    parameter PTP_TS_W = 80
+    ) (
     input wire                          aresetn,
     input wire                          clk,
 
@@ -49,18 +52,16 @@ module TSN_ep #(
     input wire                          out_axis_tready,
     output wire                         out_axis_tlast,
 
-    input wire [7:0]                    mac_gmii_rxd_in,
-    input wire                          mac_gmii_rx_clk,
-    input wire                          mac_gmii_rx_dv_in,
-    input wire [7:0]                    mac_gmii_txd_in,
-    input wire                          mac_gmii_tx_en_in,
-    input wire                          mac_gmii_tx_clk,
+    // timestamps from mac
+    input wire [PTP_TS_W-1:0]           in_ts,
+    input wire [PTP_TS_W-1:0]           out_ts,
 
-    // rst rtc
+    // rst rtc (only for experiments)
     output reg                          rst_rtc_out,
     input wire                          rst_rtc_in,
     output reg                          time_one_pps_out,
     input wire                          time_one_pps_in,
+    output reg [79:0]                   ptpTime,
 
     input wire                          ext_in,
     output wire                          ext_out,
@@ -273,7 +274,7 @@ transmission_selection #(
     .CurrentEntry(CurrentEntry)
 );
 
-
+`ifdef DEBUG
 wire [31:0] intAxisDebug;
 wire [31:0] outWideAxisDebug;
 wire [31:0] outAxisDebug;
@@ -320,14 +321,15 @@ always @(posedge clk) begin
         if (int_axis_tvalid & int_axis_tready & int_axis_tlast) intAxisTlasts <= intAxisTlasts + 1;
         if (out_wide_axis_tvalid & out_wide_axis_tready & out_wide_axis_tlast) outWideAxisTlasts <= outWideAxisTlasts + 1;
         if (out_axis_tvalid & out_axis_tready & out_axis_tlast) outAxisTlasts <= outAxisTlasts + 1;
-        if (mac_gmii_rx_dv_in) gmii_rx_en_cnt <= gmii_rx_en_cnt+1;
-        if (mac_gmii_tx_en_in) gmii_tx_en_cnt <= gmii_tx_en_cnt+1;
+        // if (mac_gmii_rx_dv_in) gmii_rx_en_cnt <= gmii_rx_en_cnt+1;
+        // if (mac_gmii_tx_en_in) gmii_tx_en_cnt <= gmii_tx_en_cnt+1;
     end
 end
 
 assign intAxisDebug = {intAxisTlasts[11:0],1'b0,int_axis_tready,int_axis_tvalid,int_axis_tlast,intAxisTransactions};
 assign outWideAxisDebug = {outWideAxisTlasts[11:0],1'b0,out_wide_axis_tready,out_wide_axis_tvalid,out_wide_axis_tlast,outWideAxisTransactions};
 assign outAxisDebug = {outAxisTlasts[11:0],1'b0,out_axis_tready,out_axis_tvalid,out_axis_tlast,outAxisTransactions};
+`endif
 
 wire [AXI_DW-1:0]                       iqWData;
 wire [(NQ_B+Q_DB)-1:0]                  iqWAddr;
@@ -405,9 +407,7 @@ easyaxil #(
     .oqWLenWe(),
     .oqWMetaData(oqWMetaData),
     .pgDebug(pgDebug),
-`endif
-//////
-`ifndef PKTGEN
+`else
     .oqWData(oqWData),
     .oqWAddr(oqWAddr),
     .oqWe(oqWe), // write enable, will only come high if AXI transaction for wData has happened
@@ -455,6 +455,7 @@ easyaxil #(
     .iqRDone(iqRDone),
     .oqDebug(oqDebug),
     .tsDebug(tsDebug),
+    `ifdef DEBUG
     .widthDebug(widthDebug),
     .intAxisDebug(intAxisDebug),
     .outWideAxisDebug(outWideAxisDebug),
@@ -462,8 +463,17 @@ easyaxil #(
     .gmii_debug(gmii_debug),
     .rx_tsu_debug(rx_tsu_debug),
     .tx_tsu_debug(tx_tsu_debug),
-
+    `else
+    .widthDebug(),
+    .intAxisDebug(),
+    .outWideAxisDebug(),
+    .outAxisDebug(),
+    .gmii_debug(),
+    .rx_tsu_debug(),
+    .tx_tsu_debug(),
+    `endif
     // probes
+    `ifdef EXPERIMENTS
     .probesValid(probesValid),
     .probesRe(probesRe),
     .inProbeTs(inProbeTs),
@@ -478,6 +488,22 @@ easyaxil #(
     .extProbeTs(extProbeTs),
     .txMacProbeTs(txMacProbeTs),
     .rxMacProbeTs(rxMacProbeTs),
+    `else
+    .probesValid(),
+    .probesRe(),
+    .inProbeTs(),
+    .iqProbeTs(),
+    .iqDoneProbeTs(),
+    .oqProbeTs(),
+    .tsProbeTs(),
+    .wcProbeTs(),
+    .outProbeTs(),
+    .outDoneProbeTs(),
+    .gateProbeTs(),
+    .extProbeTs(),
+    .txMacProbeTs(),
+    .rxMacProbeTs(),
+    `endif
 
     // fan
     .fan_duty(fan_duty),
@@ -494,10 +520,7 @@ easyaxil #(
     .genRstStats(),
     .genOKTransmissions(0),
     .genNOKTransmissions(0),
-`endif
-//////
-    // // pkt gen
-`ifdef PKTGEN
+    `else
     .genEnabled(genEnabled),
     .genInterval(genInterval),
     .genLength(genLength),
@@ -622,6 +645,7 @@ always @(posedge clk) begin
     time_one_pps_out <= (time_one_pps_out_cnt > 0);
 end
 
+
 wire rtc_sync_mode;
 time_sync_hw #(
     .SIM(SIM),
@@ -630,12 +654,17 @@ time_sync_hw #(
     .rst(~rstn),
     .time_rst(rst_rtc | rst_rtc_in_pulse),
     .clk(clk),
-    .mac_gmii_rxd_in(mac_gmii_rxd_in),
-    .mac_gmii_rx_clk(mac_gmii_rx_clk),
-    .mac_gmii_rx_dv_in(mac_gmii_rx_dv_in),
-    .mac_gmii_txd_in(mac_gmii_txd_in),
-    .mac_gmii_tx_en_in(mac_gmii_tx_en_in),
-    .mac_gmii_tx_clk(mac_gmii_tx_clk),
+    .tx_axis_tvalid(out_axis_tvalid),
+    .tx_axis_tready(out_axis_tready),
+    .tx_axis_tdata(out_axis_tdata),
+    .tx_axis_tlast(out_axis_tlast),
+    .tx_ts(out_ts),
+
+    .rx_axis_tvalid(in_axis_tvalid),
+    .rx_axis_tready(in_axis_tready),
+    .rx_axis_tdata(in_axis_tdata),
+    .rx_axis_tlast(in_axis_tlast),
+    .rx_ts(in_ts),
     .rx_ptp_msgid_mask(rx_ptp_msgid_mask),
     .tx_ptp_msgid_mask(tx_ptp_msgid_mask),
     .tsu_q_rst(tsu_q_rst),
@@ -674,8 +703,10 @@ time_sync_hw #(
 
 // timestamping packet starts at different points
 wire [79:0] tsSync = {sync_time_ptp_sec,sync_time_ptp_ns};
+assign ptpTime = tsSync;
 
 
+`ifdef EXPERIMENTS
 // input from mac
 wire inProbeRe, inProbeValid;
 wire [79:0] inProbeTs;
@@ -823,10 +854,10 @@ ts_probe gateStates_probe (
 reg txMacPulse;
 reg txMacPrev;
 initial {txMacPulse,txMacPrev} = 0;
-always @(posedge clk) begin
-    txMacPulse <= mac_gmii_tx_en_in & ~txMacPrev;
-    txMacPrev <= mac_gmii_tx_en_in;
-end
+// always @(posedge clk) begin
+//     txMacPulse <= mac_gmii_tx_en_in & ~txMacPrev;
+//     txMacPrev <= mac_gmii_tx_en_in;
+// end
 wire txMacProbeRe, txMacProbeValid;
 wire [79:0] txMacProbeTs;
 ts_probe txMacProbe (
@@ -844,10 +875,10 @@ ts_probe txMacProbe (
 reg rxMacPulse;
 reg rxMacPrev;
 initial {rxMacPulse,rxMacPrev} = 0;
-always @(posedge clk) begin
-    rxMacPulse <= mac_gmii_rx_dv_in & ~rxMacPrev;
-    rxMacPrev <= mac_gmii_rx_dv_in;
-end
+// always @(posedge clk) begin
+//     // rxMacPulse <= mac_gmii_rx_dv_in & ~rxMacPrev;
+//     // rxMacPrev <= mac_gmii_rx_dv_in;
+// end
 wire rxMacProbeRe, rxMacProbeValid;
 wire [79:0] rxMacProbeTs;
 ts_probe rxMacProbe (
@@ -889,10 +920,11 @@ ts_probe ext_probe (
     );
 
 
-localparam NUM_PROBES = 12;
 wire [NUM_PROBES-1:0] probesValid;
 wire [NUM_PROBES-1:0] probesRe;
 assign probesValid = {rxMacProbeValid, txMacProbeValid, extProbeValid, gateProbeValid, outDoneProbeValid, outProbeValid, wcProbeValid, tsProbeValid, oqProbeValid, iqDoneProbeValid, iqProbeValid, inProbeValid};
 assign {rxMacProbeRe, txMacProbeRe, extProbeRe, gateProbeRe, outDoneProbeRe, outProbeRe, wcProbeRe, tsProbeRe, oqProbeRe, iqDoneProbeRe, iqProbeRe, inProbeRe} = probesRe;
+`endif
+localparam NUM_PROBES = 12;
 
 endmodule
